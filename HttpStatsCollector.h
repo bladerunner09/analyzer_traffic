@@ -10,53 +10,30 @@
 #include "SystemUtils.h"
 
 /**
- * An auxiliary struct for encapsulating rate stats
- */
-struct Rate
-{
-	double currentRate; // periodic rate
-	double totalRate;	 // overlal rate
-
-	void clear()
-	{
-		currentRate = 0;
-		totalRate = 0;
-	}
-};
-
-/**
  * A struct for collecting general HTTP stats
  */
 struct HttpGeneralStats
 {
 	int numOfHttpFlows; // total number of HTTP flows
-	Rate httpFlowRate; // rate of HTTP flows
 	int numOfHttpPipeliningFlows; // total number of HTTP flows that contains at least on HTTP pipelining transaction
 	int numOfHttpTransactions; // total number of HTTP transactions
-	Rate httpTransactionsRate; // rate of HTTP transactions
 	double averageNumOfHttpTransactionsPerFlow; // average number of HTTP transactions per flow
 	int numOfHttpPackets; // total number of HTTP packets
-	Rate httpPacketRate; // rate of HTTP packets
 	double averageNumOfPacketsPerFlow; // average number of HTTP packets per flow
 	int amountOfHttpTraffic; // total HTTP traffic in bytes
 	double averageAmountOfDataPerFlow; // average number of HTTP traffic per flow
-	Rate httpTrafficRate; // rate of HTTP traffic
 	double sampleTime; // total stats collection time
 
 	void clear()
 	{
 		numOfHttpFlows = 0;
-		httpFlowRate.clear();
 		numOfHttpPipeliningFlows = 0;
 		numOfHttpTransactions = 0;
-		httpTransactionsRate.clear();
 		averageNumOfHttpTransactionsPerFlow = 0;
 		numOfHttpPackets = 0;
-		httpPacketRate.clear();
 		averageNumOfPacketsPerFlow = 0;
 		amountOfHttpTraffic = 0;
 		averageAmountOfDataPerFlow = 0;
-		httpTrafficRate.clear();
 		sampleTime = 0;
 	}
 };
@@ -68,7 +45,6 @@ struct HttpGeneralStats
 struct HttpMessageStats
 {
 	int numOfMessages; // total number of HTTP messages of that type (request/response)
-	Rate messageRate; // rate of HTTP messages of that type
 	int totalMessageHeaderSize; // total size (in bytes) of data in headers
 	double averageMessageHeaderSize; // average header size
 
@@ -77,7 +53,6 @@ struct HttpMessageStats
 	virtual void clear()
 	{
 		numOfMessages = 0;
-		messageRate.clear();
 		totalMessageHeaderSize = 0;
 		averageMessageHeaderSize = 0;
 	}
@@ -185,53 +160,6 @@ public:
 
 		// calculate current sample time which is the time-span from start time until current time
 		m_GeneralStats.sampleTime = getCurTime() - m_StartTime;
-	}
-
-	/**
-	 * Calculate rates. Should be called periodically
-	 */
-	void calcRates()
-	{
-		// getting current machine time
-		double curTime = getCurTime();
-
-		// getting time from last rate calculation until now
-		double diffSec = curTime - m_LastCalcRateTime;
-
-		// calculating current rates which are the changes from last rate calculation until now divided by the time passed from
-		// last rate calculation until now
-		if (diffSec != 0)
-		{
-			m_GeneralStats.httpTrafficRate.currentRate = (m_GeneralStats.amountOfHttpTraffic - m_PrevGeneralStats.amountOfHttpTraffic) / diffSec;
-			m_GeneralStats.httpPacketRate.currentRate = (m_GeneralStats.numOfHttpPackets - m_PrevGeneralStats.numOfHttpPackets) / diffSec;
-			m_GeneralStats.httpFlowRate.currentRate = (m_GeneralStats.numOfHttpFlows - m_PrevGeneralStats.numOfHttpFlows) / diffSec;
-			m_GeneralStats.httpTransactionsRate.currentRate = (m_GeneralStats.numOfHttpTransactions - m_PrevGeneralStats.numOfHttpTransactions) / diffSec;
-			m_RequestStats.messageRate.currentRate = (m_RequestStats.numOfMessages - m_PrevRequestStats.numOfMessages) / diffSec;
-			m_ResponseStats.messageRate.currentRate = (m_ResponseStats.numOfMessages - m_PrevResponseStats.numOfMessages) / diffSec;
-		}
-
-		// getting the time from the beginning of stats collection until now
-		double diffSecTotal = curTime - m_StartTime;
-
-		// calculating total rate which is the change from beginning of stats collection until now divided by time passed from
-		// beginning of stats collection until now
-		if (diffSecTotal != 0)
-		{
-			m_GeneralStats.httpTrafficRate.totalRate = m_GeneralStats.amountOfHttpTraffic / diffSecTotal;
-			m_GeneralStats.httpPacketRate.totalRate = m_GeneralStats.numOfHttpPackets / diffSecTotal;
-			m_GeneralStats.httpFlowRate.totalRate = m_GeneralStats.numOfHttpFlows / diffSecTotal;
-			m_GeneralStats.httpTransactionsRate.totalRate = m_GeneralStats.numOfHttpTransactions / diffSecTotal;
-			m_RequestStats.messageRate.totalRate = m_RequestStats.numOfMessages / diffSecTotal;
-			m_ResponseStats.messageRate.totalRate = m_ResponseStats.numOfMessages / diffSecTotal;
-		}
-
-		// saving current numbers for using them in the next rate calculation
-		m_PrevGeneralStats = m_GeneralStats;
-		m_PrevRequestStats = m_RequestStats;
-		m_PrevResponseStats = m_ResponseStats;
-
-		// saving the current time for using in the next rate calculation
-		m_LastCalcRateTime = curTime;
 	}
 
 	/**
