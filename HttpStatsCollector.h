@@ -14,27 +14,15 @@
  */
 struct HttpGeneralStats
 {
-	int numOfHttpFlows; // total number of HTTP flows
-	int numOfHttpPipeliningFlows; // total number of HTTP flows that contains at least on HTTP pipelining transaction
 	int numOfHttpTransactions; // total number of HTTP transactions
-	double averageNumOfHttpTransactionsPerFlow; // average number of HTTP transactions per flow
 	int numOfHttpPackets; // total number of HTTP packets
-	double averageNumOfPacketsPerFlow; // average number of HTTP packets per flow
 	int amountOfHttpTraffic; // total HTTP traffic in bytes
-	double averageAmountOfDataPerFlow; // average number of HTTP traffic per flow
-	double sampleTime; // total stats collection time
 
 	void clear()
 	{
-		numOfHttpFlows = 0;
-		numOfHttpPipeliningFlows = 0;
 		numOfHttpTransactions = 0;
-		averageNumOfHttpTransactionsPerFlow = 0;
 		numOfHttpPackets = 0;
-		averageNumOfPacketsPerFlow = 0;
 		amountOfHttpTraffic = 0;
-		averageAmountOfDataPerFlow = 0;
-		sampleTime = 0;
 	}
 };
 
@@ -92,14 +80,12 @@ struct HttpResponseStats : HttpMessageStats
 	std::map<std::string, int> contentTypeCount; // a map for counting the content-types seen in traffic
 	int numOfMessagesWithContentLength; // total number of responses containing the "content-length" field
 	int totalContentLengthSize; // total body size extracted by responses containing "content-length" field
-	double averageContentLengthSize; // average body size
 
 	void clear()
 	{
 		HttpMessageStats::clear();
 		numOfMessagesWithContentLength = 0;
 		totalContentLengthSize = 0;
-		averageContentLengthSize = 0;
 		statusCodeCount.clear();
 		contentTypeCount.clear();
 	}
@@ -157,9 +143,6 @@ public:
 			collectHttpGeneralStats(tcpLayer1, res, hashVal);
 			collectResponseStats(res, dataSize);
 		}
-
-		// calculate current sample time which is the time-span from start time until current time
-		m_GeneralStats.sampleTime = getCurTime() - m_StartTime;
 	}
 
 	/**
@@ -173,8 +156,6 @@ public:
 		m_PrevRequestStats.clear();
 		m_ResponseStats.clear();
 		m_PrevResponseStats.clear();
-		m_LastCalcRateTime = getCurTime();
-		m_StartTime = m_LastCalcRateTime;
 	}
 
 	/**
@@ -239,15 +220,7 @@ private:
 		if (m_FlowTable.find(hashVal) == m_FlowTable.end())
 		{
 			// count this new flow
-			m_GeneralStats.numOfHttpFlows++;
 			m_FlowTable[hashVal].clear();
-		}
-
-		// calculate averages
-		if (m_FlowTable.size() != 0)
-		{
-			m_GeneralStats.averageAmountOfDataPerFlow = (double)m_GeneralStats.amountOfHttpTraffic / (double)m_FlowTable.size();
-			m_GeneralStats.averageNumOfPacketsPerFlow = (double)m_GeneralStats.numOfHttpPackets / (double)m_FlowTable.size();
 		}
 
 		return hashVal;
@@ -278,7 +251,6 @@ private:
 			if (!m_FlowTable[flowKey].httpPipeliningFlow && m_FlowTable[flowKey].lastSeenMessage == pcpp::HTTPRequest)
 			{
 				m_FlowTable[flowKey].httpPipeliningFlow = true;
-				m_GeneralStats.numOfHttpPipeliningFlows++;
 			}
 
 			// set last seen message on flow as HTTP request
@@ -302,7 +274,6 @@ private:
 			if (!m_FlowTable[flowKey].httpPipeliningFlow && m_FlowTable[flowKey].lastSeenMessage == pcpp::HTTPResponse)
 			{
 				m_FlowTable[flowKey].httpPipeliningFlow = true;
-				m_GeneralStats.numOfHttpPipeliningFlows++;
 			}
 
 			// set last seen message on flow as HTTP response
@@ -312,10 +283,6 @@ private:
 			{
 				// a transaction was closed - increase number of complete transactions
 				m_GeneralStats.numOfHttpTransactions++;
-
-				// calc average transactions per flow
-				if (m_FlowTable.size() != 0)
-					m_GeneralStats.averageNumOfHttpTransactionsPerFlow = (double)m_GeneralStats.numOfHttpTransactions / (double)m_FlowTable.size();
 			}
 
 			// set last seen sequence number
@@ -341,9 +308,6 @@ private:
 
 		m_RequestStats.methodCount[req->getFirstLine()->getMethod()]++;
 
-		int prevDataSize = m_RequestStats.outDataLenghtPerHost[hostField->getFieldValue()];
-		int prevPacketsNum = m_RequestStats.outPacketsNumPerHost[hostField->getFieldValue()];
-
 		m_RequestStats.outDataLenghtPerHost[hostField->getFieldValue()] += dataSize;
 		m_RequestStats.outPacketsNumPerHost[hostField->getFieldValue()]++;
 
@@ -360,16 +324,6 @@ private:
 		m_ResponseStats.totalMessageHeaderSize += res->getHeaderLen();
 		if (m_ResponseStats.numOfMessages != 0)
 			m_ResponseStats.averageMessageHeaderSize = (double)m_ResponseStats.totalMessageHeaderSize / (double)m_ResponseStats.numOfMessages;
-
-		// extract content-length (if exists)
-		pcpp::HeaderField* contentLengthField = res->getFieldByName(PCPP_HTTP_CONTENT_LENGTH_FIELD);
-		if (contentLengthField != NULL)
-		{
-			m_ResponseStats.numOfMessagesWithContentLength++;
-			m_ResponseStats.totalContentLengthSize += atoi(contentLengthField->getFieldValue().c_str());
-			if (m_ResponseStats.numOfMessagesWithContentLength != 0)
-				m_ResponseStats.averageContentLengthSize = (double)m_ResponseStats.totalContentLengthSize / (double)m_ResponseStats.numOfMessagesWithContentLength;
-		}
 
 		// extract content-type and add to content-type map
 		pcpp::HeaderField* contentTypeField = res->getFieldByName(PCPP_HTTP_CONTENT_TYPE_FIELD);
@@ -397,15 +351,6 @@ private:
 		m_ResponseStats.inPacketsNumPerHost[lastRequestHost]++;
 	}
 
-	double getCurTime(void)
-	{
-	    struct timeval tv;
-
-	    gettimeofday(&tv, NULL);
-
-	    return (((double) tv.tv_sec) + (double) (tv.tv_usec / 1000000.0));
-	}
-
 	HttpGeneralStats m_GeneralStats;
 	HttpGeneralStats m_PrevGeneralStats;
 	HttpRequestStats m_RequestStats;
@@ -415,7 +360,5 @@ private:
 
 	std::map<uint32_t, HttpFlowData> m_FlowTable;
 
-	double m_LastCalcRateTime;
-	double m_StartTime;
 	uint16_t m_DstPort;
 };

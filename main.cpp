@@ -81,50 +81,7 @@ void printUsage()
 		<< "    -r calc_period : The period in seconds to calculate rates. If not provided default is 2 seconds" << std::endl
 		<< "    -d             : Disable periodic rates calculation" << std::endl
 		<< "    -h             : Displays this help message and exits" << std::endl
-		<< "    -v             : Displays the current version and exists" << std::endl
-		<< "    -l             : Print the list of interfaces and exists" << std::endl
 		<< std::endl;
-}
-
-
-/**
- * Print application version
- */
-void printAppVersion()
-{
-	std::cout
-		<< pcpp::AppName::get() << " " << pcpp::getPcapPlusPlusVersionFull() << std::endl
-		<< "Built: " << pcpp::getBuildDateTime() << std::endl
-		<< "Built from: " << pcpp::getGitInfo() << std::endl;
-	exit(0);
-}
-
-
-/**
- * Go over all interfaces and output their names
- */
-void listInterfaces()
-{
-	const std::vector<pcpp::PcapLiveDevice*>& devList = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDevicesList();
-
-	std::cout << std::endl << "Network interfaces:" << std::endl;
-	for (std::vector<pcpp::PcapLiveDevice*>::const_iterator iter = devList.begin(); iter != devList.end(); iter++)
-	{
-		std::cout << "    -> Name: '" << (*iter)->getName() << "'   IP address: " << (*iter)->getIPv4Address().toString() << std::endl;
-	}
-	exit(0);
-}
-
-
-void printStatsHeadline(const std::string &description)
-{
-	std::string underline;
-	for (size_t i = 0; i < description.length(); i++)
-	{
-		underline += "-";
-	}
-
-	std::cout << std::endl << description << std::endl << underline << std::endl << std::endl;
 }
 
 
@@ -148,171 +105,9 @@ void httpPacketArrive(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, void* 
 	}
 }
 
-/**
- * Print the method count table
- */
-void printMethods(HttpRequestStats& reqStatscollector)
-{
-	// create the table
-	std::vector<std::string> columnNames;
-	columnNames.push_back("Method");
-	columnNames.push_back("Count");
-	std::vector<int> columnsWidths;
-	columnsWidths.push_back(9);
-	columnsWidths.push_back(5);
-	pcpp::TablePrinter printer(columnNames, columnsWidths);
-
-
-	// go over the method count table and print each method and count
-	for(std::map<pcpp::HttpRequestLayer::HttpMethod, int>::iterator iter = reqStatscollector.methodCount.begin();
-			iter != reqStatscollector.methodCount.end();
-			iter++)
-	{
-		std::stringstream values;
-
-		switch (iter->first)
-		{
-		case pcpp::HttpRequestLayer::HttpGET:
-			values << "GET" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpGET];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpPOST:
-			values << "POST" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpPOST];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpCONNECT:
-			values << "CONNECT" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpCONNECT];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpDELETE:
-			values << "DELETE" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpDELETE];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpHEAD:
-			values << "HEAD" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpHEAD];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpOPTIONS:
-			values << "OPTIONS" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpOPTIONS];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpPATCH:
-			values << "PATCH" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpPATCH];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpPUT:
-			values << "PUT" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpPUT];
-			printer.printRow(values.str(), '|');
-			break;
-		case pcpp::HttpRequestLayer::HttpTRACE:
-			values << "TRACE" << "|" << reqStatscollector.methodCount[pcpp::HttpRequestLayer::HttpTRACE];
-			printer.printRow(values.str(), '|');
-			break;
-		default:
-			break;
-		}
-
-	}
-}
-
 
 /**
- * An auxiliary method for sorting the hostname count map. Used only in printHostnames()
- */
-bool hostnameComparer(const std::pair<std::string, int>& first, const std::pair<std::string, int>& second)
-{
-	if (first.second == second.second)
-	{
-		return first.first > second.first;
-	}
-	return first.second > second.second;
-}
-
-/**
- * Print the hostname count map to a table sorted by popularity (most popular hostnames will be first)
- */
-void printHostnames(HttpRequestStats& reqStatscollector)
-{
-	// create the table
-	std::vector<std::string> columnNames;
-	columnNames.push_back("Hostname");
-	columnNames.push_back("Count");
-	std::vector<int> columnsWidths;
-	columnsWidths.push_back(40);
-	columnsWidths.push_back(5);
-	pcpp::TablePrinter printer(columnNames, columnsWidths);
-
-	// sort the hostname count map so the most popular hostnames will be first
-	// since it's not possible to sort a std::map you must copy it to a std::vector and sort it then
-	std::vector<std::pair<std::string, int> > map2vec(reqStatscollector.hostnameCount.begin(), reqStatscollector.hostnameCount.end());
-	std::sort(map2vec.begin(),map2vec.end(), &hostnameComparer);
-
-	// go over all items (hostname + count) in the sorted vector and print them
-	for(std::vector<std::pair<std::string, int> >::iterator iter = map2vec.begin();
-			iter != map2vec.end();
-			iter++)
-	{
-		std::stringstream values;
-		values << iter->first << "|" << iter->second;
-		printer.printRow(values.str(), '|');
-	}
-}
-
-
-/**
- * Print the status code count table
- */
-void printStatusCodes(HttpResponseStats& resStatscollector)
-{
-	// create the table
-	std::vector<std::string> columnNames;
-	columnNames.push_back("Status Code");
-	columnNames.push_back("Count");
-	std::vector<int> columnsWidths;
-	columnsWidths.push_back(28);
-	columnsWidths.push_back(5);
-	pcpp::TablePrinter printer(columnNames, columnsWidths);
-
-	// go over the status code map and print each item
-	for(std::map<std::string, int>::iterator iter = resStatscollector.statusCodeCount.begin();
-			iter != resStatscollector.statusCodeCount.end();
-			iter++)
-	{
-		std::stringstream values;
-		values << iter->first << "|" << iter->second;
-		printer.printRow(values.str(), '|');
-	}
-}
-
-
-/**
- * Print the content-type count table
- */
-void printContentTypes(HttpResponseStats& resStatscollector)
-{
-	// create the table
-	std::vector<std::string> columnNames;
-	columnNames.push_back("Content-type");
-	columnNames.push_back("Count");
-	std::vector<int> columnsWidths;
-	columnsWidths.push_back(30);
-	columnsWidths.push_back(5);
-	pcpp::TablePrinter printer(columnNames, columnsWidths);
-
-	// go over the status code map and print each item
-	for(std::map<std::string, int>::iterator iter = resStatscollector.contentTypeCount.begin();
-			iter != resStatscollector.contentTypeCount.end();
-			iter++)
-	{
-		std::stringstream values;
-		values << iter->first << "|" << iter->second;
-		printer.printRow(values.str(), '|');
-	}
-}
-
-
-/**
- * Print the current rates. Should be called periodically during traffic capture
+ * Print the summary traffic.
  */
 void printSummaryTraffic(HttpStatsCollector& collector)
 {
@@ -477,12 +272,6 @@ int main(int argc, char* argv[])
 			case 'h':
 				printUsage();
 				exit(0);
-				break;
-			case 'v':
-				printAppVersion();
-				break;
-			case 'l':
-				listInterfaces();
 				break;
 			default:
 				printUsage();
