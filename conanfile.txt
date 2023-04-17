@@ -1,0 +1,6 @@
+[requires]
+pcapplusplus/22.11
+
+[generators]
+CMakeToolchain
+CMakeDeps
