@@ -129,25 +129,6 @@ private:
 	 */
 	void collectResponseStats(pcpp::HttpResponseLayer* res, int dataSize)
 	{
-		// extract content-type and add to content-type map
-		pcpp::HeaderField* contentTypeField = res->getFieldByName(PCPP_HTTP_CONTENT_TYPE_FIELD);
-		if (contentTypeField != NULL)
-		{
-			std::string contentType = contentTypeField->getFieldValue();
-
-			// sometimes content-type contains also the charset it uses.
-			// for example: "application/javascript; charset=UTF-8"
-			// remove charset as it's not relevant for these stats
-			size_t charsetPos = contentType.find(";");
-			if (charsetPos != std::string::npos)
-				contentType.resize(charsetPos);
-		}
-
-		// collect status code - create one string from status code and status description (for example: 200 OK)
-		std::ostringstream stream;
-		stream << res->getFirstLine()->getStatusCodeAsInt();
-		std::string statusCode = stream.str() + " " + res->getFirstLine()->getStatusCodeString();
-
 		m_ResponseStats.inDataLenghtPerHost[lastRequestHost] += dataSize;
 		m_ResponseStats.inPacketsNumPerHost[lastRequestHost]++;
 	}
