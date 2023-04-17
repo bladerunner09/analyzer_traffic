@@ -1,0 +1,9 @@
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "/home/daniil/Desktop/analyzer_traffic/build/CMakePresets.json"
+    ]
+}
