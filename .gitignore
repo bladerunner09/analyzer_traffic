@@ -1,0 +1,8 @@
+analyzer_traffic.INFO
+analyzer_traffic.WARNING
+analyzer_traffic.ERROR
+analyzer_traffic.FATAL
+
+#Folders
+/build
+/.vscode

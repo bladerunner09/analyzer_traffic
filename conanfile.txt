@@ -1,5 +1,6 @@
 [requires]
 pcapplusplus/22.11
+glog/0.6.0
 
 [generators]
 CMakeToolchain

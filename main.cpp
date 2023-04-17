@@ -36,13 +36,13 @@ struct HttpPacketArrivedData
 void printUsage()
 {
 	std::cout << std::endl
-		<< "Traffic analyzer:" << std::endl
+		<< "Analyzer traffic:" << std::endl
 		<< "-------------------------" << std::endl
 		<< pcpp::AppName::get() << " [-h] [-r calc_period] [-p dst_port] [-i interface]" << std::endl
 		<< std::endl
 		<< "Options:" << std::endl
 		<< std::endl
-		<< "    -i interface   : Use the specified interface. Can be interface name (e.g eth0) or interface IPv4 address" << std::endl
+		<< "    -i interface   : Use the specified interface." << std::endl
 		<< "    -p dst_port    : Use the specified port (optional parameter, the default is 80)" << std::endl
 		<< "    -r calc_period : The period in seconds to calculate rates. If not provided default is 5 seconds" << std::endl
 		<< "    -h             : Displays this help message and exits" << std::endl
@@ -62,16 +62,17 @@ void httpPacketArrive(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, void* 
 
 void printSummaryTraffic(HttpStatsCollector& collector)
 {
-	for (auto it = collector.getRequestStats().outDataLenghtPerHost.begin(); it != collector.getRequestStats().outDataLenghtPerHost.end(); it++) {
-		std::cout << it->first << ": " << collector.getRequestStats().outPacketsNumPerHost[it->first] + collector.getResponseStats().inPacketsNumPerHost[it->first]
-		<< " packets (" << collector.getRequestStats().outPacketsNumPerHost[it->first] << " OUT / " << collector.getResponseStats().inPacketsNumPerHost[it->first] << " IN) "
-		<< "Traffic: " <<  collector.getRequestStats().outDataLenghtPerHost[it->first] + collector.getResponseStats().inDataLenghtPerHost[it->first] << "B ("
-		<< collector.getRequestStats().outDataLenghtPerHost[it->first] << "B OUT / " << collector.getResponseStats().inDataLenghtPerHost[it->first] << "B IN)";
+	if (!collector.getRequestStats().outDataLenghtPerHost.empty()) {
+		for (auto it = collector.getRequestStats().outDataLenghtPerHost.begin(); it != collector.getRequestStats().outDataLenghtPerHost.end(); it++) {
+			std::cout << it->first << ": " << collector.getRequestStats().outPacketsNumPerHost[it->first] + collector.getResponseStats().inPacketsNumPerHost[it->first]
+			<< " packets (" << collector.getRequestStats().outPacketsNumPerHost[it->first] << " OUT / " << collector.getResponseStats().inPacketsNumPerHost[it->first] << " IN) "
+			<< "Traffic: " <<  collector.getRequestStats().outDataLenghtPerHost[it->first] + collector.getResponseStats().inDataLenghtPerHost[it->first] << "B ("
+			<< collector.getRequestStats().outDataLenghtPerHost[it->first] << "B OUT / " << collector.getResponseStats().inDataLenghtPerHost[it->first] << "B IN)";
 
+			std::cout << std::endl;
+	}
 		std::cout << std::endl;
 	}
-
-	std::cout << std::endl;
 }
 
 
